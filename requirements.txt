@@ -1,0 +1,9 @@
+flask==2.2.5
+pytest==7.0.1
+flask-sqlalchemy==3.0.2
+flask-migrate==4.0.4
+python-dotenv==1.0.0
+marshmallow==3.14.1
+werkzeug==2.2.3
+flasgger
+neo4j

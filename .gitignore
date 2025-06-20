@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pdb
+*.egg-info/
+
+# VSCode
+.vscode/
+
+# Entornos virtuales
+venv/
+.venv/
+ENV/
+
+# Archivos de base de datos y migraciones
+app.db
+*.sqlite3
+migrations/versions/__pycache__/
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Neo4j data
+neo4j_data/
+
+# Archivos temporales
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Otros
+.env
+*.bak
+*.tmp
+
+# Pruebas y cobertura
+htmlcov/
+.coverage
+.cache/
+.pytest_cache/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
