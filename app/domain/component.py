@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 class Component:
     """Entidad de dominio para un componente de arquitectura de despliegue."""
@@ -10,6 +10,7 @@ class Component:
         tecnologia: str,
         artefacto: str,
         nodo_despliegue: str,
+        puerto_de_despliegue: Optional[int],
         dependencias: List[str],
         interfaces_comunicacion: List[Dict[str, Any]],
         seguridad: List[str],
@@ -25,6 +26,7 @@ class Component:
         self.tecnologia = tecnologia
         self.artefacto = artefacto
         self.nodo_despliegue = nodo_despliegue
+        self.puerto_de_despliegue = puerto_de_despliegue
         self.dependencias = dependencias
         self.interfaces_comunicacion = interfaces_comunicacion
         self.seguridad = seguridad
@@ -45,6 +47,7 @@ class Component:
             tecnologia=data.get('tecnologia', ''),
             artefacto=data.get('artefacto', ''),
             nodo_despliegue=data.get('nodo_despliegue', ''),
+            puerto_de_despliegue=data.get('puerto_de_despliegue'),
             dependencias=data.get('dependencias', []),
             interfaces_comunicacion=data.get('interfaces_comunicacion', []),
             seguridad=data.get('seguridad', []),

@@ -33,6 +33,7 @@ class Neo4jComponentRepository:
             tecnologia: $tecnologia,
             artefacto: $artefacto,
             nodo_despliegue: $nodo_despliegue,
+            puerto_de_despliegue: $puerto_de_despliegue,
             dependencias: $dependencias,
             seguridad: $seguridad,
             escalabilidad: $escalabilidad,
@@ -119,6 +120,9 @@ class Neo4jComponentRepository:
         SET c += $props
         RETURN c
         """
+        # Asegurarse de que puerto_de_despliegue esté presente aunque sea None
+        if 'puerto_de_despliegue' not in data:
+            data['puerto_de_despliegue'] = None
         data.pop('id', None)
         result = tx.run(query, id=component_id, props=data).single()
         if result:

@@ -56,6 +56,7 @@ def get_component(component_id):
                     'tecnologia': {'type': 'string'},
                     'artefacto': {'type': 'string'},
                     'nodo_despliegue': {'type': 'string'},
+                    'puerto_de_despliegue': {'type': 'integer'},
                     'dependencias': {'type': 'array', 'items': {'type': 'string'}},
                     'interfaces_comunicacion': {
                         'type': 'array',
@@ -105,6 +106,7 @@ def create_component():
                     'tecnologia': {'type': 'string'},
                     'artefacto': {'type': 'string'},
                     'nodo_despliegue': {'type': 'string'},
+                    'puerto_de_despliegue': {'type': 'integer'},
                     'dependencias': {'type': 'array', 'items': {'type': 'string'}},
                     'interfaces_comunicacion': {
                         'type': 'array',
