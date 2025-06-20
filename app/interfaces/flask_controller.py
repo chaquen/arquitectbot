@@ -31,7 +31,46 @@ def get_component(component_id):
     return jsonify({'error': 'No encontrado'}), 404
 
 @bp.route('/componentes', methods=['POST'])
-@swag_from({'responses': {201: {'description': 'Creado'}, 400: {'description': 'Error de validación'}}})
+@swag_from({
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'nombre': {'type': 'string'},
+                    'descripcion': {'type': 'string'},
+                    'tipo': {'type': 'string'},
+                    'tecnologia': {'type': 'string'},
+                    'artefacto': {'type': 'string'},
+                    'nodo_despliegue': {'type': 'string'},
+                    'dependencias': {'type': 'array', 'items': {'type': 'string'}},
+                    'interfaces_comunicacion': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'tipo': {'type': 'string'},
+                                'protocolo': {'type': 'string'},
+                                'endpoint': {'type': 'string'},
+                                'puerto': {'type': 'integer'},
+                                'descripcion': {'type': 'string'}
+                            }
+                        }
+                    },
+                    'seguridad': {'type': 'array', 'items': {'type': 'string'}},
+                    'escalabilidad': {'type': 'string'},
+                    'observabilidad': {'type': 'string'},
+                    'notas_adicionales': {'type': 'string'}
+                },
+                'required': ['nombre', 'tipo']
+            }
+        }
+    ],
+    'responses': {201: {'description': 'Creado'}, 400: {'description': 'Error de validación'}}
+})
 def create_component():
     data = request.get_json()
     try:
@@ -41,7 +80,45 @@ def create_component():
         return jsonify({'error': str(e)}), 400
 
 @bp.route('/componentes/<component_id>', methods=['PUT'])
-@swag_from({'responses': {200: {'description': 'Actualizado'}, 404: {'description': 'No encontrado'}}})
+@swag_from({
+    'parameters': [
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'nombre': {'type': 'string'},
+                    'descripcion': {'type': 'string'},
+                    'tipo': {'type': 'string'},
+                    'tecnologia': {'type': 'string'},
+                    'artefacto': {'type': 'string'},
+                    'nodo_despliegue': {'type': 'string'},
+                    'dependencias': {'type': 'array', 'items': {'type': 'string'}},
+                    'interfaces_comunicacion': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'tipo': {'type': 'string'},
+                                'protocolo': {'type': 'string'},
+                                'endpoint': {'type': 'string'},
+                                'puerto': {'type': 'integer'},
+                                'descripcion': {'type': 'string'}
+                            }
+                        }
+                    },
+                    'seguridad': {'type': 'array', 'items': {'type': 'string'}},
+                    'escalabilidad': {'type': 'string'},
+                    'observabilidad': {'type': 'string'},
+                    'notas_adicionales': {'type': 'string'}
+                }
+            }
+        }
+    ],
+    'responses': {200: {'description': 'Actualizado'}, 404: {'description': 'No encontrado'}}
+})
 def update_component(component_id):
     data = request.get_json()
     component = service.update_component(component_id, data)
