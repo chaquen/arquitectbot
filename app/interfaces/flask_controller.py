@@ -23,7 +23,17 @@ def get_components():
     return jsonify([c.to_dict() for c in components]), 200
 
 @bp.route('/componentes/<component_id>', methods=['GET'])
-@swag_from({'responses': {200: {'description': 'Componente encontrado'}, 404: {'description': 'No encontrado'}}})
+@swag_from({
+    'parameters': [
+        {
+            'name': 'component_id',
+            'in': 'path',
+            'type': 'string',
+            'required': True,
+            'description': 'ID del componente a consultar'
+        }
+    ],
+    'responses': {200: {'description': 'Componente encontrado'}, 404: {'description': 'No encontrado'}}})
 def get_component(component_id):
     component = service.get_component(component_id)
     if component:
@@ -127,7 +137,18 @@ def update_component(component_id):
     return jsonify({'error': 'No encontrado'}), 404
 
 @bp.route('/componentes/<component_id>', methods=['DELETE'])
-@swag_from({'responses': {204: {'description': 'Eliminado'}, 404: {'description': 'No encontrado'}}})
+@swag_from({
+    'parameters': [
+        {
+            'name': 'component_id',
+            'in': 'path',
+            'type': 'string',
+            'required': True,
+            'description': 'ID del componente a eliminar'
+        }
+    ],
+    'responses': {204: {'description': 'Eliminado'}, 404: {'description': 'No encontrado'}}
+})
 def delete_component(component_id):
     if service.delete_component(component_id):
         return '', 204
