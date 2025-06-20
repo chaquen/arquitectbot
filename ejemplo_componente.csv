@@ -1,2 +1,0 @@
-nombre;descripcion;tipo;tecnologia;artefacto;nodo_despliegue;dependencias;interfaces_comunicacion;seguridad;escalabilidad;observabilidad;notas_adicionales
-auth-service;Servicio de autenticación de usuarios;Microservicio;Node.js + Express;auth-service:1.0;Contenedor Docker en Kubernetes;"user-service;PostgreSQL";"[{tipo"":""Entrada"",protocolo:""HTTP"",endpoint:""/login"",puerto:8080,descripcion:""Login de usuarios""}]""";"JWT;TLS";Replicado con HPA;Prometheus y Grafana;Pendiente mejorar trazabilidad
