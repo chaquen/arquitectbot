@@ -55,6 +55,8 @@ def import_nodes_components_from_csv(file: FileStorage) -> List[Dict[str, Any]]:
 def import_edges_from_csv(file: FileStorage) -> List[Dict[str, Any]]:
     """
     Reads a CSV file with edges and returns a list of dictionaries.
+    Supports multiple targets separated by semicolons (;) in the target column.
+    
     Args:
         file (FileStorage): The uploaded CSV file.
     Returns:
@@ -99,21 +101,26 @@ def import_edges_from_csv(file: FileStorage) -> List[Dict[str, Any]]:
             
             # Extraer campos
             source = row[source_idx].strip() if source_idx < len(row) else ''
-            target = row[target_idx].strip() if target_idx < len(row) else ''
+            target_str = row[target_idx].strip() if target_idx < len(row) else ''
             rel_type = row[type_idx].strip() if type_idx >= 0 and type_idx < len(row) else 'CONNECTS_TO'
             
-            if not source or not target:
+            if not source or not target_str:
                 current_app.logger.warning(f"Row {i}: Faltan source o target, saltando fila.")
                 continue
-                
-            edge_dict = {
-                'source': source,
-                'target': target,
-                'type_of_relation': rel_type
-            }
             
-            edges.append(edge_dict)
-            current_app.logger.debug(f"Edge leído: {edge_dict}")
+            # Separar múltiples targets si existen
+            targets = [t.strip() for t in target_str.split(';') if t.strip()]
+            current_app.logger.debug(f"Targets encontrados en fila {i}: {targets}")
+            
+            for target in targets:
+                edge_dict = {
+                    'source': source,
+                    'target': target,
+                    'type_of_relation': rel_type
+                }
+                
+                edges.append(edge_dict)
+                current_app.logger.debug(f"Edge leído: {edge_dict}")
             
     except Exception as e:
         current_app.logger.error(f"Error reading CSV: {e}", exc_info=True)

@@ -255,7 +255,7 @@ def import_nodes_components():
             'in': 'formData',
             'type': 'file',
             'required': True,
-            'description': 'CSV file with columns: source, target, type_of_relation'
+            'description': 'CSV file with columns: source, target, type_of_relation. The target column can contain multiple IDs separated by semicolons (;) to create multiple relationships from a single source.'
         }
     ],
     'responses': {
@@ -285,6 +285,10 @@ def import_edges():
     """
     Import edges from a CSV file. The CSV must have columns:
     source, target, type_of_relation
+    
+    The target column can contain multiple IDs separated by semicolons (;).
+    For example, "1,2;3;4,CONNECTS_TO" will create relationships from node 1 to nodes 2, 3, and 4.
+    
     Always creates relationships in Neo4j. Only source and target are required.
     Returns:
         JSON result of created/updated edges or error message.
