@@ -7,7 +7,7 @@ def test_create_component(client):
     data = {
         'label': 'Test Component',
         'component_type': 'Service',
-        'type': 'API',
+        'category': 'API',
         'location': 'Cloud',
         'technology': 'Python',
         'host': 'host1',
@@ -24,7 +24,7 @@ def test_get_component(client):
     data = {
         'label': 'Test Component',
         'component_type': 'Service',
-        'type': 'API',
+        'category': 'API',
         'location': 'Cloud',
         'technology': 'Python',
         'host': 'host1',
@@ -45,7 +45,7 @@ def test_update_component(client):
     data = {
         'label': 'Test Component',
         'component_type': 'Service',
-        'type': 'API',
+        'category': 'API',
         'location': 'Cloud',
         'technology': 'Python',
         'host': 'host1',
@@ -59,7 +59,7 @@ def test_update_component(client):
     update_data = {
         'label': 'Updated Component',
         'component_type': 'Microservice',
-        'type': 'API',
+        'category': 'DB',
         'location': 'OnPrem',
         'technology': 'Go',
         'host': 'host2',
@@ -76,7 +76,7 @@ def test_delete_component(client):
     data = {
         'label': 'Test Component',
         'component_type': 'Service',
-        'type': 'API',
+        'category': 'API',
         'location': 'Cloud',
         'technology': 'Python',
         'host': 'host1',

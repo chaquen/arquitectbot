@@ -12,7 +12,7 @@ service = ComponentService()
             'description': 'List of components',
             'examples': {
                 'application/json': [
-                    {'label': 'Component A', 'component_type': 'Service', 'type': 'API', 'location': 'Cloud', 'technology': 'Python', 'host': 'host1', 'description': '...', 'interface': 'REST'}
+                    {'label': 'Component A', 'component_type': 'Service', 'category': 'API', 'location': 'Cloud', 'technology': 'Python', 'host': 'host1', 'description': '...', 'interface': 'REST'}
                 ]
             }
         }
@@ -33,7 +33,7 @@ def get_components():
         {
             'name': 'component_id',
             'in': 'path',
-            'type': 'string',
+            'category': 'string',
             'required': True,
             'description': 'ID of the component to retrieve'
         }
@@ -64,14 +64,14 @@ def get_component(component_id):
                 'properties': {
                     'label': {'type': 'string'},
                     'component_type': {'type': 'string'},
-                    'type': {'type': 'string'},
+                    'category': {'type': 'string'},
                     'location': {'type': 'string'},
                     'technology': {'type': 'string'},
                     'host': {'type': 'string'},
                     'description': {'type': 'string'},
                     'interface': {'type': 'string'}
                 },
-                'required': ['label', 'component_type', 'type', 'location', 'technology', 'host', 'description', 'interface']
+                'required': ['label', 'component_type', 'category', 'location', 'technology', 'host', 'description', 'interface']
             }
         }
     ],
@@ -102,7 +102,7 @@ def create_component():
                 'properties': {
                     'label': {'type': 'string'},
                     'component_type': {'type': 'string'},
-                    'type': {'type': 'string'},
+                    'category': {'type': 'string'},
                     'location': {'type': 'string'},
                     'technology': {'type': 'string'},
                     'host': {'type': 'string'},
@@ -134,7 +134,7 @@ def update_component(component_id):
         {
             'name': 'component_id',
             'in': 'path',
-            'type': 'string',
+            'category': 'string',
             'required': True,
             'description': 'ID of the component to delete'
         }

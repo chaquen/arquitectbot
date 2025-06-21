@@ -10,7 +10,7 @@ class Component:
         id: str = None,
         label: str = '',
         component_type: str = '',
-        type: str = '',
+        category: str = '',
         location: str = '',
         technology: str = '',
         host: str = '',
@@ -23,7 +23,7 @@ class Component:
             id (str, optional): Unique identifier.
             label (str): Display label for the component.
             component_type (str): Type of the component (e.g., Service, Database).
-            type (str): Subtype or further classification.
+            category (str): High-level category (e.g., API, DB, Other).
             location (str): Physical or logical location.
             technology (str): Technology stack used.
             host (str): Hostname or address.
@@ -33,7 +33,7 @@ class Component:
         self.id = id
         self.label = label
         self.component_type = component_type
-        self.type = type
+        self.category = category
         self.location = location
         self.technology = technology
         self.host = host
@@ -50,7 +50,7 @@ class Component:
             'id': self.id,
             'label': self.label,
             'component_type': self.component_type,
-            'type': self.type,
+            'category': self.category,
             'location': self.location,
             'technology': self.technology,
             'host': self.host,
@@ -71,7 +71,7 @@ class Component:
             id=data.get('id'),
             label=data.get('label', ''),
             component_type=data.get('component_type', ''),
-            type=data.get('type', ''),
+            category=data.get('category', ''),
             location=data.get('location', ''),
             technology=data.get('technology', ''),
             host=data.get('host', ''),
