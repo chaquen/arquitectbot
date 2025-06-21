@@ -5,14 +5,14 @@ from flasgger import swag_from
 bp = Blueprint('component_api', __name__)
 service = ComponentService()
 
-@bp.route('/componentes', methods=['GET'])
+@bp.route('/components', methods=['GET'])
 @swag_from({
     'responses': {
         200: {
-            'description': 'Lista de componentes',
+            'description': 'List of components',
             'examples': {
                 'application/json': [
-                    {'nombre': 'auth-service', 'tipo': 'Microservicio'}
+                    {'label': 'Component A', 'component_type': 'Service', 'type': 'API', 'location': 'Cloud', 'technology': 'Python', 'host': 'host1', 'description': '...', 'interface': 'REST'}
                 ]
             }
         }
@@ -22,7 +22,7 @@ def get_components():
     components = service.get_all_components()
     return jsonify([c.to_dict() for c in components]), 200
 
-@bp.route('/componentes/<component_id>', methods=['GET'])
+@bp.route('/components/<component_id>', methods=['GET'])
 @swag_from({
     'parameters': [
         {
@@ -30,17 +30,17 @@ def get_components():
             'in': 'path',
             'type': 'string',
             'required': True,
-            'description': 'ID del componente a consultar'
+            'description': 'ID of the component to retrieve'
         }
     ],
-    'responses': {200: {'description': 'Componente encontrado'}, 404: {'description': 'No encontrado'}}})
+    'responses': {200: {'description': 'Component found'}, 404: {'description': 'Not found'}}})
 def get_component(component_id):
     component = service.get_component(component_id)
     if component:
         return jsonify(component.to_dict()), 200
-    return jsonify({'error': 'No encontrado'}), 404
+    return jsonify({'error': 'Not found'}), 404
 
-@bp.route('/componentes', methods=['POST'])
+@bp.route('/components', methods=['POST'])
 @swag_from({
     'parameters': [
         {
@@ -50,36 +50,20 @@ def get_component(component_id):
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'nombre': {'type': 'string'},
-                    'descripcion': {'type': 'string'},
-                    'tipo': {'type': 'string'},
-                    'tecnologia': {'type': 'string'},
-                    'artefacto': {'type': 'string'},
-                    'nodo_despliegue': {'type': 'string'},
-                    'dependencias': {'type': 'array', 'items': {'type': 'string'}},
-                    'interfaces_comunicacion': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'tipo': {'type': 'string'},
-                                'protocolo': {'type': 'string'},
-                                'endpoint': {'type': 'string'},
-                                'puerto': {'type': 'integer'},
-                                'descripcion': {'type': 'string'}
-                            }
-                        }
-                    },
-                    'seguridad': {'type': 'array', 'items': {'type': 'string'}},
-                    'escalabilidad': {'type': 'string'},
-                    'observabilidad': {'type': 'string'},
-                    'notas_adicionales': {'type': 'string'}
+                    'label': {'type': 'string'},
+                    'component_type': {'type': 'string'},
+                    'type': {'type': 'string'},
+                    'location': {'type': 'string'},
+                    'technology': {'type': 'string'},
+                    'host': {'type': 'string'},
+                    'description': {'type': 'string'},
+                    'interface': {'type': 'string'}
                 },
-                'required': ['nombre', 'tipo']
+                'required': ['label', 'component_type', 'type', 'location', 'technology', 'host', 'description', 'interface']
             }
         }
     ],
-    'responses': {201: {'description': 'Creado'}, 400: {'description': 'Error de validación'}}
+    'responses': {201: {'description': 'Created'}, 400: {'description': 'Validation error'}}
 })
 def create_component():
     data = request.get_json()
@@ -89,7 +73,7 @@ def create_component():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@bp.route('/componentes/<component_id>', methods=['PUT'])
+@bp.route('/components/<component_id>', methods=['PUT'])
 @swag_from({
     'parameters': [
         {
@@ -99,44 +83,28 @@ def create_component():
             'schema': {
                 'type': 'object',
                 'properties': {
-                    'nombre': {'type': 'string'},
-                    'descripcion': {'type': 'string'},
-                    'tipo': {'type': 'string'},
-                    'tecnologia': {'type': 'string'},
-                    'artefacto': {'type': 'string'},
-                    'nodo_despliegue': {'type': 'string'},
-                    'dependencias': {'type': 'array', 'items': {'type': 'string'}},
-                    'interfaces_comunicacion': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'tipo': {'type': 'string'},
-                                'protocolo': {'type': 'string'},
-                                'endpoint': {'type': 'string'},
-                                'puerto': {'type': 'integer'},
-                                'descripcion': {'type': 'string'}
-                            }
-                        }
-                    },
-                    'seguridad': {'type': 'array', 'items': {'type': 'string'}},
-                    'escalabilidad': {'type': 'string'},
-                    'observabilidad': {'type': 'string'},
-                    'notas_adicionales': {'type': 'string'}
+                    'label': {'type': 'string'},
+                    'component_type': {'type': 'string'},
+                    'type': {'type': 'string'},
+                    'location': {'type': 'string'},
+                    'technology': {'type': 'string'},
+                    'host': {'type': 'string'},
+                    'description': {'type': 'string'},
+                    'interface': {'type': 'string'}
                 }
             }
         }
     ],
-    'responses': {200: {'description': 'Actualizado'}, 404: {'description': 'No encontrado'}}
+    'responses': {200: {'description': 'Updated'}, 404: {'description': 'Not found'}}
 })
 def update_component(component_id):
     data = request.get_json()
     component = service.update_component(component_id, data)
     if component:
         return jsonify(component.to_dict()), 200
-    return jsonify({'error': 'No encontrado'}), 404
+    return jsonify({'error': 'Not found'}), 404
 
-@bp.route('/componentes/<component_id>', methods=['DELETE'])
+@bp.route('/components/<component_id>', methods=['DELETE'])
 @swag_from({
     'parameters': [
         {
@@ -144,12 +112,45 @@ def update_component(component_id):
             'in': 'path',
             'type': 'string',
             'required': True,
-            'description': 'ID del componente a eliminar'
+            'description': 'ID of the component to delete'
         }
     ],
-    'responses': {204: {'description': 'Eliminado'}, 404: {'description': 'No encontrado'}}
+    'responses': {204: {'description': 'Deleted'}, 404: {'description': 'Not found'}}
 })
 def delete_component(component_id):
     if service.delete_component(component_id):
         return '', 204
-    return jsonify({'error': 'No encontrado'}), 404
+    return jsonify({'error': 'Not found'}), 404
+
+@bp.route('/components/<id_from>/connect/<id_to>', methods=['POST'])
+@swag_from({
+    'parameters': [
+        {'name': 'id_from', 'in': 'path', 'type': 'string', 'required': True},
+        {'name': 'id_to', 'in': 'path', 'type': 'string', 'required': True},
+        {
+            'name': 'body',
+            'in': 'body',
+            'required': True,
+            'schema': {
+                'type': 'object',
+                'properties': {
+                    'connection_type': {'type': 'string'},
+                    'protocol': {'type': 'string'},
+                    'port': {'type': 'integer'},
+                    'usage': {'type': 'string'},
+                    'authenticated': {'type': 'boolean'},
+                    'authentication': {'type': 'string'},
+                    'encryption': {'type': 'string'}
+                },
+                'required': ['connection_type', 'protocol', 'port']
+            }
+        }
+    ],
+    'responses': {201: {'description': 'Connection created'}, 400: {'description': 'Error'}}
+})
+def connect_components(id_from, id_to):
+    props = request.get_json()
+    ok = service.connect_components(id_from, id_to, props)
+    if ok:
+        return jsonify({'message': 'Connection created'}), 201
+    return jsonify({'error': 'Could not create connection'}), 400

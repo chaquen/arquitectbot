@@ -1,11 +1,10 @@
 from neo4j import GraphDatabase
 from app.domain.component import Component
-from app.domain.interface_comunicacion import InterfazComunicacion
 from typing import List, Optional
 import os
 
 class Neo4jComponentRepository:
-    """Repositorio para componentes usando Neo4j como backend."""
+    """Repository for components using Neo4j as backend."""
     def __init__(self):
         uri = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
         user = os.environ.get("NEO4J_USER", "neo4j")
@@ -19,94 +18,90 @@ class Neo4jComponentRepository:
 
     def create(self, component: Component) -> Component:
         with self.driver.session(database=self.database) as session:
-            result = session.write_transaction(self._create_component_with_interfaces, component)
+            result = session.write_transaction(self._create_component, component)
             return result
 
     @staticmethod
-    def _create_component_with_interfaces(tx, component: Component) -> Component:
-        # Crear el nodo del componente
-        query_comp = """
+    def _create_component(tx, component: Component) -> Component:
+        query = """
         CREATE (c:Component {
-            nombre: $nombre,
-            descripcion: $descripcion,
-            tipo: $tipo,
-            tecnologia: $tecnologia,
-            artefacto: $artefacto,
-            nodo_despliegue: $nodo_despliegue,
-            dependencias: $dependencias,
-            seguridad: $seguridad,
-            escalabilidad: $escalabilidad,
-            observabilidad: $observabilidad,
-            notas_adicionales: $notas_adicionales,
+            label: $label,
+            component_type: $component_type,
+            type: $type,
+            location: $location,
+            technology: $technology,
+            host: $host,
+            description: $description,
+            interface: $interface,
             id: randomUUID()
         })
         RETURN c
         """
-        comp_props = component.to_dict().copy()
-        comp_props.pop('id', None)
-        interfaces = comp_props.pop('interfaces_comunicacion', [])
-        record = tx.run(query_comp, **comp_props).single()
+        record = tx.run(query,
+            label=component.label,
+            component_type=component.component_type,
+            type=component.type,
+            location=component.location,
+            technology=component.technology,
+            host=component.host,
+            description=component.description,
+            interface=component.interface
+        ).single()
         node = record["c"]
-        comp_id = node['id']
-        # Crear nodos y relaciones para interfaces de comunicación
-        for interfaz in interfaces:
-            query_iface = """
-            CREATE (i:InterfazComunicacion {
-                tipo: $tipo,
-                protocolo: $protocolo,
-                endpoint: $endpoint,
-                puerto: $puerto,
-                descripcion: $descripcion,
-                id: randomUUID()
-            })
-            WITH i
-            MATCH (c:Component {id: $comp_id})
-            CREATE (c)-[:TIENE_INTERFAZ]->(i)
-            RETURN i
-            """
-            tx.run(query_iface, comp_id=comp_id, **interfaz)
-        # Consultar el componente con interfaces
-        return Neo4jComponentRepository._get_component_with_interfaces(tx, comp_id)
+        return Component(
+            id=node["id"],
+            label=node.get("label", ""),
+            component_type=node.get("component_type", ""),
+            type=node.get("type", ""),
+            location=node.get("location", ""),
+            technology=node.get("technology", ""),
+            host=node.get("host", ""),
+            description=node.get("description", ""),
+            interface=node.get("interface", "")
+        )
 
     def get_by_id(self, component_id: str) -> Optional[Component]:
         with self.driver.session(database=self.database) as session:
-            return session.read_transaction(self._get_component_with_interfaces, component_id)
+            return session.read_transaction(self._get_component, component_id)
 
     @staticmethod
-    def _get_component_with_interfaces(tx, component_id: str) -> Optional[Component]:
-        query = """
-        MATCH (c:Component {id: $id})
-        OPTIONAL MATCH (c)-[:TIENE_INTERFAZ]->(i:InterfazComunicacion)
-        RETURN c, collect(i) as interfaces
-        """
+    def _get_component(tx, component_id: str) -> Optional[Component]:
+        query = "MATCH (c:Component {id: $id}) RETURN c"
         result = tx.run(query, id=component_id).single()
         if result:
-            cdict = dict(result['c'])
-            interfaces = [dict(i) for i in result['interfaces'] if i]
-            cdict['interfaces_comunicacion'] = interfaces
-            return Component.from_dict(cdict)
+            node = result["c"]
+            return Component(
+                id=node["id"],
+                label=node.get("label", ""),
+                component_type=node.get("component_type", ""),
+                type=node.get("type", ""),
+                location=node.get("location", ""),
+                technology=node.get("technology", ""),
+                host=node.get("host", ""),
+                description=node.get("description", ""),
+                interface=node.get("interface", "")
+            )
         return None
 
     def get_all(self) -> List[Component]:
         with self.driver.session(database=self.database) as session:
-            return session.read_transaction(self._get_all_components_with_interfaces)
+            return session.read_transaction(self._get_all_components)
 
     @staticmethod
-    def _get_all_components_with_interfaces(tx) -> List[Component]:
-        query = """
-        MATCH (c:Component)
-        OPTIONAL MATCH (c)-[:TIENE_INTERFAZ]->(i:InterfazComunicacion)
-        WITH c, collect(i) as interfaces
-        RETURN c, interfaces
-        """
+    def _get_all_components(tx) -> List[Component]:
+        query = "MATCH (c:Component) RETURN c"
         result = tx.run(query)
-        components = []
-        for record in result:
-            cdict = dict(record['c'])
-            interfaces = [dict(i) for i in record['interfaces'] if i]
-            cdict['interfaces_comunicacion'] = interfaces
-            components.append(Component.from_dict(cdict))
-        return components
+        return [Component(
+            id=record["c"]["id"],
+            label=record["c"].get("label", ""),
+            component_type=record["c"].get("component_type", ""),
+            type=record["c"].get("type", ""),
+            location=record["c"].get("location", ""),
+            technology=record["c"].get("technology", ""),
+            host=record["c"].get("host", ""),
+            description=record["c"].get("description", ""),
+            interface=record["c"].get("interface", "")
+        ) for record in result]
 
     def update(self, component_id: str, data: dict) -> Optional[Component]:
         with self.driver.session(database=self.database) as session:
@@ -122,7 +117,18 @@ class Neo4jComponentRepository:
         data.pop('id', None)
         result = tx.run(query, id=component_id, props=data).single()
         if result:
-            return Component.from_dict(dict(result['c']))
+            node = result["c"]
+            return Component(
+                id=node["id"],
+                label=node.get("label", ""),
+                component_type=node.get("component_type", ""),
+                type=node.get("type", ""),
+                location=node.get("location", ""),
+                technology=node.get("technology", ""),
+                host=node.get("host", ""),
+                description=node.get("description", ""),
+                interface=node.get("interface", "")
+            )
         return None
 
     def delete(self, component_id: str) -> bool:
@@ -134,3 +140,17 @@ class Neo4jComponentRepository:
         query = "MATCH (c:Component {id: $id}) DETACH DELETE c RETURN COUNT(c) as deleted"
         result = tx.run(query, id=component_id).single()
         return result and result['deleted'] > 0
+
+    def connect_components(self, id_from: str, id_to: str, props: dict) -> bool:
+        with self.driver.session(database=self.database) as session:
+            return session.write_transaction(self._connect_components, id_from, id_to, props)
+
+    @staticmethod
+    def _connect_components(tx, id_from: str, id_to: str, props: dict) -> bool:
+        query = """
+        MATCH (a:Component {id: $id_from}), (b:Component {id: $id_to})
+        CREATE (a)-[r:CONNECTS_TO $props]->(b)
+        RETURN r
+        """
+        result = tx.run(query, id_from=id_from, id_to=id_to, props=props).single()
+        return result is not None

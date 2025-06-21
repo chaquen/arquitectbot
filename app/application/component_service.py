@@ -3,7 +3,7 @@ from app.infrastructure.neo4j_repository import Neo4jComponentRepository
 from typing import List, Optional
 
 class ComponentService:
-    """Caso de uso para la gestión de componentes."""
+    """Use case for managing components."""
     def __init__(self):
         self.repo = Neo4jComponentRepository()
 
@@ -22,6 +22,9 @@ class ComponentService:
 
     def delete_component(self, component_id: str) -> bool:
         return self.repo.delete(component_id)
+
+    def connect_components(self, id_from: str, id_to: str, props: dict) -> bool:
+        return self.repo.connect_components(id_from, id_to, props)
 
     def close(self):
         self.repo.close()

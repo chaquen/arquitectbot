@@ -5,22 +5,31 @@ def test_get_components_empty(client):
 
 def test_create_component(client):
     data = {
-        'name': 'Test Component',
-        'type': 'Service',
-        'description': 'Test Description'
+        'label': 'Test Component',
+        'component_type': 'Service',
+        'type': 'API',
+        'location': 'Cloud',
+        'technology': 'Python',
+        'host': 'host1',
+        'description': 'Test Description',
+        'interface': 'REST'
     }
     response = client.post('/components', json=data)
     assert response.status_code == 201
-    assert response.json['name'] == data['name']
-    assert response.json['type'] == data['type']
-    assert response.json['description'] == data['description']
+    for key in data:
+        assert response.json[key] == data[key]
 
 def test_get_component(client):
     # First create a component
     data = {
-        'name': 'Test Component',
-        'type': 'Service',
-        'description': 'Test Description'
+        'label': 'Test Component',
+        'component_type': 'Service',
+        'type': 'API',
+        'location': 'Cloud',
+        'technology': 'Python',
+        'host': 'host1',
+        'description': 'Test Description',
+        'interface': 'REST'
     }
     create_response = client.post('/components', json=data)
     component_id = create_response.json['id']
@@ -28,38 +37,51 @@ def test_get_component(client):
     # Then get it
     response = client.get(f'/components/{component_id}')
     assert response.status_code == 200
-    assert response.json['name'] == data['name']
-    assert response.json['type'] == data['type']
-    assert response.json['description'] == data['description']
+    for key in data:
+        assert response.json[key] == data[key]
 
 def test_update_component(client):
     # First create a component
     data = {
-        'name': 'Test Component',
-        'type': 'Service',
-        'description': 'Test Description'
+        'label': 'Test Component',
+        'component_type': 'Service',
+        'type': 'API',
+        'location': 'Cloud',
+        'technology': 'Python',
+        'host': 'host1',
+        'description': 'Test Description',
+        'interface': 'REST'
     }
     create_response = client.post('/components', json=data)
     component_id = create_response.json['id']
 
     # Then update it
     update_data = {
-        'name': 'Updated Component',
-        'type': 'Microservice',
-        'description': 'Updated Description'
+        'label': 'Updated Component',
+        'component_type': 'Microservice',
+        'type': 'API',
+        'location': 'OnPrem',
+        'technology': 'Go',
+        'host': 'host2',
+        'description': 'Updated Description',
+        'interface': 'gRPC'
     }
     response = client.put(f'/components/{component_id}', json=update_data)
     assert response.status_code == 200
-    assert response.json['name'] == update_data['name']
-    assert response.json['type'] == update_data['type']
-    assert response.json['description'] == update_data['description']
+    for key in update_data:
+        assert response.json[key] == update_data[key]
 
 def test_delete_component(client):
     # First create a component
     data = {
-        'name': 'Test Component',
-        'type': 'Service',
-        'description': 'Test Description'
+        'label': 'Test Component',
+        'component_type': 'Service',
+        'type': 'API',
+        'location': 'Cloud',
+        'technology': 'Python',
+        'host': 'host1',
+        'description': 'Test Description',
+        'interface': 'REST'
     }
     create_response = client.post('/components', json=data)
     component_id = create_response.json['id']

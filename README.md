@@ -54,6 +54,44 @@ Este proyecto es una API REST basada en Flask y Neo4j para la gestión de compon
 pytest
 ```
 
+## Relaciones entre componentes
+
+En este modelo, los componentes se conectan entre sí mediante relaciones de tipo `SE_CONECTA_A`, que pueden tener propiedades como tipo de conexión, protocolo, puerto, uso, autenticación y cifrado.
+
+**Ejemplo Cypher:**
+
+```cypher
+CREATE (token:Componente {nombre: "componente-token", tipo: "Servicio"})
+CREATE (db:Componente {nombre: "componente-base-datos", tipo: "Base de Datos"})
+CREATE (token)-[:SE_CONECTA_A {
+  tipo_conexion: "directa",
+  protocolo: "bolt",
+  puerto: 7687,
+  uso: "lectura y escritura",
+  autenticado: true,
+  autenticacion: "JWT",
+  cifrado: "TLS"
+}]->(db)
+```
+
+**Desde la API:**
+
+- `POST /componentes` para crear componentes.
+- `POST /componentes/{id_origen}/conecta/{id_destino}` para crear la relación entre dos componentes, enviando las propiedades de la relación en el body JSON.
+
+**Ejemplo de body JSON para la relación:**
+```json
+{
+  "tipo_conexion": "directa",
+  "protocolo": "bolt",
+  "puerto": 7687,
+  "uso": "lectura y escritura",
+  "autenticado": true,
+  "autenticacion": "JWT",
+  "cifrado": "TLS"
+}
+```
+
 ## Notas
 
 - Para detener los servicios, usa:
