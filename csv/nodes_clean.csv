@@ -1,0 +1,27 @@
+id,label,component_type,category,location,technology,host,description,interface
+1,WebServer,Logico,WebSite,Public Site,.net framework,Principal,,http
+2,Reverse Proxy,Proxy,Rules,Private Site,N/A,Principal,,http
+3,Activa.Managment.Token,Logico,Api,Private Site,.net core,Principal,,http
+4,DataService,Logico,WebSite,Private Site,.net framework,Principal,,http
+5,ActivaWebMethodsMSMQ,Logico,WebSite,Private Site,.net framework,Principal,,http
+6,Activa.SeparadorDocumental,Logico,Api,Private Site,.net core,Principal,,http
+7,Activa.SpeedTest,Logico,WebSite,Private Site,other,Principal,,http
+8,Activa.Core.Api,Logico,Api,Private Site,.net core,Principal,,http
+9,Activa.Legacy.Rest,Logico,WebSite,Private Site,.net framework,Principal,,http
+10,ActivaWebMethods,Logico,WebSite,Private Site,.net framework,Principal,,http
+11,RGC-WService,Logico,WebSite,Private Site,.net framework,Principal,,http
+12,Activa.Wcf.MultiPurpose,Logico,WebSite,Private Site,.net framework,Principal,,http
+13,Activa.Core.Radication.Service,Logico,Api,Private Site,.net core,Principal,,http
+14,Activa.Core.Analitica.Service,Logico,Api,Private Site,.net core,Principal,,http
+15,Activa.Core.Radicacion.Api,Logico,Api,Private Site,.net core,Principal,,http
+16,Redis,Base de datos,DB,In memory,in memory,Principal,,
+17,SqlServer,Base de datos,DB,Database,sql,Principal DB,,
+18,NoSql,Base de datos,DB,Database,nosql,Principal DB,,
+19,Principal Job,Logico,Task,Hangfire,.net core,Principal DRP,,http
+20,RyP,Logico,Task,Hangfire,.net core,Principal DRP,,http
+21,Colsanitas Job,Logico,Task,Hangfire,.net core,Principal DRP,,http
+22,Previsora Job,Logico,Task,Hangfire,.net core,Principal DRP,,http
+23,Activa.Core.Radicacion.Hangfire,Logico,Task,Hangfire,.net core,Principal DRP,,http
+24,Activa.Windows.Services,Logico,Service,Service,.net framework,Principal,,
+25,RGC_WindowsServices,Logico,Service,Service,.net framework,Principal,,
+26,Robot Radicacion Digital,Logico,Service,Service,.net framework,Principal,,

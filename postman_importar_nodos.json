@@ -1,0 +1,34 @@
+{
+  "info": {
+    "_postman_id": "nodes-import-collection",
+    "name": "Importar Nodos Arquitectura",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Importar Nodos",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "csv/nodes_clean.csv"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5000/import-nodes",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["import-nodes"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

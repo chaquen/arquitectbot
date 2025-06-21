@@ -1,0 +1,34 @@
+{
+  "info": {
+    "_postman_id": "edges-import-collection",
+    "name": "Importar Edges Arquitectura",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Importar Edges",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "csv/edges_clean.csv"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5000/import-edges",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["import-edges"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

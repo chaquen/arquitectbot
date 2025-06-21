@@ -16,7 +16,22 @@ class Neo4jComponentRepository:
         user = os.environ.get("NEO4J_USER", "neo4j")
         password = os.environ.get("NEO4J_PASSWORD", "test1234")
         database = os.environ.get("NEO4J_DATABASE", "neo4j")
-        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+        
+        import logging
+        logging.getLogger("neo4j").setLevel(logging.DEBUG)
+        
+        from flask import current_app
+        current_app.logger.info(f"Conectando a Neo4j: {uri}, usuario: {user}, database: {database}")
+        
+        try:
+            self.driver = GraphDatabase.driver(uri, auth=(user, password))
+            # Verificar conexión
+            self.driver.verify_connectivity()
+            current_app.logger.info("Conexión a Neo4j establecida exitosamente")
+        except Exception as e:
+            current_app.logger.error(f"Error al conectar con Neo4j: {str(e)}")
+            raise
+            
         self.database = database
 
     def close(self):
@@ -33,17 +48,27 @@ class Neo4jComponentRepository:
         Returns:
             Component: The created component with its generated ID.
         """
-        with self.driver.session(database=self.database) as session:
-            result = session.write_transaction(self._create_component, component)
-            return result
+        from flask import current_app
+        current_app.logger.info(f"Creando componente en Neo4j: {component.to_dict()}")
+        
+        try:
+            with self.driver.session(database=self.database) as session:
+                result = session.write_transaction(self._create_component, component)
+                current_app.logger.info(f"Componente creado exitosamente: {result.to_dict() if result else None}")
+                return result
+        except Exception as e:
+            current_app.logger.error(f"Error al crear componente en Neo4j: {str(e)}", exc_info=True)
+            raise
 
     @staticmethod
     def _create_component(tx, component: Component) -> Component:
         """
         Cypher transaction to create a Component node.
         """
+        from flask import current_app
         query = """
         CREATE (c:Component {
+            id: $id,
             label: $label,
             component_type: $component_type,
             category: $category,
@@ -51,33 +76,47 @@ class Neo4jComponentRepository:
             technology: $technology,
             host: $host,
             description: $description,
-            interface: $interface,
-            id: randomUUID()
+            interface: $interface
         })
         RETURN c
         """
-        record = tx.run(query,
-            label=component.label,
-            component_type=component.component_type,
-            category=component.category,
-            location=component.location,
-            technology=component.technology,
-            host=component.host,
-            description=component.description,
-            interface=component.interface
-        ).single()
-        node = record["c"]
-        return Component(
-            id=node["id"],
-            label=node.get("label", ""),
-            component_type=node.get("component_type", ""),
-            category=node.get("category", ""),
-            location=node.get("location", ""),
-            technology=node.get("technology", ""),
-            host=node.get("host", ""),
-            description=node.get("description", ""),
-            interface=node.get("interface", "")
-        )
+        current_app.logger.debug(f"Ejecutando query Cypher: {query}")
+        current_app.logger.debug(f"Parámetros: {component.to_dict()}")
+        
+        try:
+            record = tx.run(query,
+                id=component.id,
+                label=component.label,
+                component_type=component.component_type,
+                category=component.category,
+                location=component.location,
+                technology=component.technology,
+                host=component.host,
+                description=component.description,
+                interface=component.interface
+            ).single()
+            
+            if not record:
+                current_app.logger.error("La consulta de creación no devolvió resultados")
+                return None
+                
+            node = record["c"]
+            current_app.logger.debug(f"Nodo creado en Neo4j: {dict(node)}")
+            
+            return Component(
+                id=node["id"],
+                label=node.get("label", ""),
+                component_type=node.get("component_type", ""),
+                category=node.get("category", ""),
+                location=node.get("location", ""),
+                technology=node.get("technology", ""),
+                host=node.get("host", ""),
+                description=node.get("description", ""),
+                interface=node.get("interface", "")
+            )
+        except Exception as e:
+            current_app.logger.error(f"Error en la transacción Cypher: {str(e)}", exc_info=True)
+            raise
 
     def get_by_id(self, component_id: str) -> Optional[Component]:
         """
@@ -87,8 +126,17 @@ class Neo4jComponentRepository:
         Returns:
             Optional[Component]: The component if found, else None.
         """
-        with self.driver.session(database=self.database) as session:
-            return session.read_transaction(self._get_component, component_id)
+        from flask import current_app
+        current_app.logger.debug(f"Buscando componente por ID: {component_id}")
+        
+        try:
+            with self.driver.session(database=self.database) as session:
+                result = session.read_transaction(self._get_component, component_id)
+                current_app.logger.debug(f"Resultado de búsqueda: {result.to_dict() if result else None}")
+                return result
+        except Exception as e:
+            current_app.logger.error(f"Error al buscar componente: {str(e)}")
+            raise
 
     @staticmethod
     def _get_component(tx, component_id: str) -> Optional[Component]:

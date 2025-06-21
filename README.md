@@ -10,10 +10,14 @@ Este proyecto es una API REST basada en Flask y Neo4j para la gestión de compon
 - Docker y Docker Compose para despliegue local
 - Documentación Swagger en `/apidocs`
 - Pruebas automáticas con pytest
+- Importación de nodos y relaciones desde archivos CSV
 
 ## Requisitos previos
 
 - Docker y Docker Compose instalados
+- Python 3.10+
+- Neo4j instalado (para desarrollo local fuera de Docker)
+- Bibliotecas Python: flask, neo4j, pytest, flasgger, requests
 
 ## Pasos para ejecutar el proyecto
 
@@ -54,43 +58,63 @@ Este proyecto es una API REST basada en Flask y Neo4j para la gestión de compon
 pytest
 ```
 
-## Relaciones entre componentes
+## Importación de Datos
 
-En este modelo, los componentes se conectan entre sí mediante relaciones de tipo `SE_CONECTA_A`, que pueden tener propiedades como tipo de conexión, protocolo, puerto, uso, autenticación y cifrado.
+La API permite importar componentes y relaciones desde archivos CSV:
 
-**Ejemplo Cypher:**
+- `POST /import-nodes-components` - Importar nodos de componentes desde CSV
+- `POST /import-edges` - Importar relaciones entre componentes desde CSV
 
-```cypher
-CREATE (token:Componente {nombre: "componente-token", tipo: "Servicio"})
-CREATE (db:Componente {nombre: "componente-base-datos", tipo: "Base de Datos"})
-CREATE (token)-[:SE_CONECTA_A {
-  tipo_conexion: "directa",
-  protocolo: "bolt",
-  puerto: 7687,
-  uso: "lectura y escritura",
-  autenticado: true,
-  autenticacion: "JWT",
-  cifrado: "TLS"
-}]->(db)
+### Formato de CSV para Nodos
+
+```csv
+id,label,component_type,category,location,technology,host,description,interface
+1,Servidor Web,Server,Frontend,Local,Nginx,server1.local,Servidor web principal,HTTP
+```
+Solo el campo `id` es obligatorio, los demás campos tomarán valores vacíos por defecto si no se proporcionan.
+
+### Formato de CSV para Relaciones
+
+```csv
+source,target,type_of_relation
+1,2,CONNECTS_TO
+```
+Los campos `source` y `target` son obligatorios y deben corresponder a IDs de nodos existentes. El campo `type_of_relation` es opcional.
+
+## Scripts de Utilidad
+
+El proyecto incluye varios scripts para facilitar la gestión de componentes y depuración:
+
+### Pruebas y Diagnóstico
+
+- `test_neo4j_connection.py` - Prueba la conectividad a la base de datos Neo4j
+- `test_import_nodes_simple.py` - Importa nodos directamente desde un archivo CSV
+- `test_import_edges_simple.py` - Importa relaciones directamente desde un archivo CSV
+- `test_import_nodes_api.py` - Prueba la importación de nodos a través de la API Flask
+- `test_import_edges_api.py` - Prueba la importación de relaciones a través de la API Flask
+- `generate_neo4j_report.py` - Genera un reporte del estado actual de la base de datos Neo4j
+
+### Ejecución de Scripts
+
+Para ejecutar cualquiera de los scripts de utilidad:
+
+```bash
+python <nombre_del_script>.py
 ```
 
-**Desde la API:**
-
-- `POST /componentes` para crear componentes.
-- `POST /componentes/{id_origen}/conecta/{id_destino}` para crear la relación entre dos componentes, enviando las propiedades de la relación en el body JSON.
-
-**Ejemplo de body JSON para la relación:**
-```json
-{
-  "tipo_conexion": "directa",
-  "protocolo": "bolt",
-  "puerto": 7687,
-  "uso": "lectura y escritura",
-  "autenticado": true,
-  "autenticacion": "JWT",
-  "cifrado": "TLS"
-}
+Ejemplo:
+```bash
+python test_neo4j_connection.py
 ```
+
+## Variables de Entorno
+
+Los scripts y la aplicación usan las siguientes variables de entorno:
+
+- `NEO4J_URI` - URI de conexión a Neo4j (default: "bolt://localhost:7687")
+- `NEO4J_USER` - Usuario de Neo4j (default: "neo4j")
+- `NEO4J_PASSWORD` - Contraseña de Neo4j (default: "test1234")
+- `NEO4J_DATABASE` - Nombre de la base de datos Neo4j (default: "neo4j")
 
 ## Notas
 
@@ -100,6 +124,8 @@ CREATE (token)-[:SE_CONECTA_A {
     docker-compose down
     ```
 
-- Puedes modificar la contraseña de Neo4j en `docker-compose.yml` si lo deseas.
+- Los scripts de importación validan los datos antes de insertarlos en la base de datos.
+- Las relaciones solo pueden crearse entre nodos existentes.
+- Si una relación ya existe, será actualizada con los nuevos atributos proporcionados.
 
 
