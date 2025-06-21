@@ -19,6 +19,11 @@ service = ComponentService()
     }
 })
 def get_components():
+    """
+    Retrieve all components.
+    Returns:
+        JSON list of all components.
+    """
     components = service.get_all_components()
     return jsonify([c.to_dict() for c in components]), 200
 
@@ -35,6 +40,13 @@ def get_components():
     ],
     'responses': {200: {'description': 'Component found'}, 404: {'description': 'Not found'}}})
 def get_component(component_id):
+    """
+    Retrieve a component by its ID.
+    Args:
+        component_id (str): The component's unique identifier.
+    Returns:
+        JSON of the component or error message.
+    """
     component = service.get_component(component_id)
     if component:
         return jsonify(component.to_dict()), 200
@@ -66,6 +78,11 @@ def get_component(component_id):
     'responses': {201: {'description': 'Created'}, 400: {'description': 'Validation error'}}
 })
 def create_component():
+    """
+    Create a new component from JSON body.
+    Returns:
+        JSON of the created component or error message.
+    """
     data = request.get_json()
     try:
         component = service.create_component(data)
@@ -98,6 +115,13 @@ def create_component():
     'responses': {200: {'description': 'Updated'}, 404: {'description': 'Not found'}}
 })
 def update_component(component_id):
+    """
+    Update an existing component by its ID.
+    Args:
+        component_id (str): The component's unique identifier.
+    Returns:
+        JSON of the updated component or error message.
+    """
     data = request.get_json()
     component = service.update_component(component_id, data)
     if component:
@@ -118,6 +142,13 @@ def update_component(component_id):
     'responses': {204: {'description': 'Deleted'}, 404: {'description': 'Not found'}}
 })
 def delete_component(component_id):
+    """
+    Delete a component by its ID.
+    Args:
+        component_id (str): The component's unique identifier.
+    Returns:
+        Empty response or error message.
+    """
     if service.delete_component(component_id):
         return '', 204
     return jsonify({'error': 'Not found'}), 404
@@ -149,6 +180,14 @@ def delete_component(component_id):
     'responses': {201: {'description': 'Connection created'}, 400: {'description': 'Error'}}
 })
 def connect_components(id_from, id_to):
+    """
+    Create a CONNECTS_TO relationship between two components.
+    Args:
+        id_from (str): ID of the source component.
+        id_to (str): ID of the target component.
+    Returns:
+        JSON message indicating success or error.
+    """
     props = request.get_json()
     ok = service.connect_components(id_from, id_to, props)
     if ok:

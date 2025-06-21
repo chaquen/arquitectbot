@@ -1,7 +1,10 @@
 from typing import List, Dict, Any
 
 class Component:
-    """Domain entity for a deployment architecture component."""
+    """
+    Domain entity for a deployment architecture component.
+    Represents a system component with its main properties.
+    """
     def __init__(
         self,
         id: str = None,
@@ -14,6 +17,19 @@ class Component:
         description: str = '',
         interface: str = ''
     ):
+        """
+        Initialize a Component instance.
+        Args:
+            id (str, optional): Unique identifier.
+            label (str): Display label for the component.
+            component_type (str): Type of the component (e.g., Service, Database).
+            type (str): Subtype or further classification.
+            location (str): Physical or logical location.
+            technology (str): Technology stack used.
+            host (str): Hostname or address.
+            description (str): Description of the component.
+            interface (str): Main interface type (e.g., REST, gRPC).
+        """
         self.id = id
         self.label = label
         self.component_type = component_type
@@ -25,6 +41,11 @@ class Component:
         self.interface = interface
 
     def to_dict(self) -> dict:
+        """
+        Serialize the component to a dictionary.
+        Returns:
+            dict: Dictionary representation of the component.
+        """
         return {
             'id': self.id,
             'label': self.label,
@@ -39,6 +60,13 @@ class Component:
 
     @staticmethod
     def from_dict(data: dict) -> 'Component':
+        """
+        Create a Component instance from a dictionary.
+        Args:
+            data (dict): Dictionary with component properties.
+        Returns:
+            Component: The created component instance.
+        """
         return Component(
             id=data.get('id'),
             label=data.get('label', ''),
