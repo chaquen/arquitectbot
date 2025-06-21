@@ -93,7 +93,6 @@ El proyecto incluye varios scripts para facilitar la gestión de componentes y d
 - `test_neo4j_connection.py` - Prueba la conectividad a la base de datos Neo4j
 - `test_import_nodes_simple.py` - Importa nodos directamente desde un archivo CSV
 - `test_import_edges_simple.py` - Importa relaciones directamente desde un archivo CSV
-- `test_import_edges_multiple_targets.py` - Importa relaciones con múltiples destinos por fila
 - `test_import_nodes_api.py` - Prueba la importación de nodos a través de la API Flask
 - `test_import_edges_api.py` - Prueba la importación de relaciones a través de la API Flask
 - `generate_neo4j_report.py` - Genera un reporte del estado actual de la base de datos Neo4j
