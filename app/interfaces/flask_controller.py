@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify, current_app
+import json
 from app.application.component_service import ComponentService
 from flasgger import swag_from
+from app.infrastructure.neo4j_generic_repository import Neo4jGenericRepository
+from app.domain.graph_model import canonical_label
 
 bp = Blueprint('component_api', __name__)
 # Use a function to create service on demand instead of at module load time
@@ -196,133 +199,326 @@ def connect_components(id_from, id_to):
         return jsonify({'message': 'Connection created'}), 201
     return jsonify({'error': 'Could not create connection'}), 400
 
-@bp.route('/import-nodes-components', methods=['POST'])
+# -------- Nuevo: Importar modelo JSON --------
+@bp.route('/import-model-json', methods=['POST'])
 @swag_from({
-    'consumes': ['multipart/form-data'],
+    'consumes': ['application/json', 'multipart/form-data'],
     'parameters': [
         {
             'name': 'file',
             'in': 'formData',
             'type': 'file',
-            'required': True,
-            'description': 'CSV file with columns: id, label, component_type, category, location, technology, host, description, interface'
+            'required': False,
+            'description': 'Archivo JSON con el modelo completo (alternativa a enviar JSON en el body)'
         }
     ],
     'responses': {
-        200: {
-            'description': 'List of imported components',
-            'schema': {
-                'type': 'array',
-                'items': {'type': 'object'}
-            }
-        },
-        201: {
-            'description': 'Nodes created in Neo4j',
-            'schema': {
-                'type': 'object'
-            }
-        },
-        400: {'description': 'Validation or file error'}
+        201: {'description': 'Modelo importado'},
+        400: {'description': 'Entrada no válida'}
     }
 })
-def import_nodes_components():
+def import_model_json():
     """
-    Import component nodes from a CSV file. The CSV must have columns:
-    id, label, component_type, category, location, technology, host, description, interface
-    Always creates nodes in Neo4j.
-    Returns:
-        JSON result of created/skipped components or error message.
+    Importa el modelo completo desde un JSON en el body o un archivo subido (campo 'file').
+    Crea nodos: Component, Host, Metric, Attribute; y relaciones: DESPLIEGA, EJECUTA, EXPONE, IMPACTA.
     """
-    from app.services import import_nodes_components_from_csv, import_and_create_nodes
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
+    from app.application.model_import_service import ModelImportService
+    data = None
+    if 'file' in request.files:
+        file = request.files['file']
+        try:
+            data = json.loads(file.read().decode('utf-8'))
+        except Exception:
+            return jsonify({"error": "Archivo JSON inválido"}), 400
+    else:
+        data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({"error": "No se recibió JSON (body o archivo)"}), 400
+
+    svc = ModelImportService()
     try:
-        components = import_nodes_components_from_csv(file)
-        result = import_and_create_nodes(components)
-        return jsonify(result), 201
-    except ValueError as e:
+        svc.ensure_constraints()
+        stats = svc.import_model(data)
+        return jsonify(stats), 201
+    finally:
+        svc.close()
+
+# -------- Nuevo: Limpiar base (solo desarrollo) --------
+@bp.route('/admin/reset-graph', methods=['POST'])
+@swag_from({'responses': {200: {'description': 'Grafo limpiado'}}})
+def reset_graph():
+    """Elimina todos los nodos y relaciones. Uso de desarrollo/QA."""
+    from app.infrastructure.neo4j_generic_repository import Neo4jGenericRepository
+    repo = Neo4jGenericRepository()
+    try:
+        with repo.driver.session(database=repo.database) as session:
+            session.run("MATCH (n) DETACH DELETE n")
+        return jsonify({"status": "ok"}), 200
+    finally:
+        repo.close()
+
+# -------- Nuevos endpoints de lectura por tipo de nodo --------
+@bp.route('/atributos', methods=['GET'])
+@swag_from({
+    'tags': ['Atributos'],
+    'responses': {200: {'description': 'Lista de atributos'}}
+})
+def list_atributos():
+    repo = Neo4jGenericRepository()
+    try:
+        nodes = repo.fetch_nodes('Attribute')
+        return jsonify([dict(n) for n in nodes]), 200
+    finally:
+        repo.close()
+
+# CRUD atributos
+@bp.route('/atributos/<name>', methods=['GET'])
+@swag_from({
+    'tags': ['Atributos'],
+    'parameters': [{'name': 'name', 'in': 'path', 'type': 'string', 'required': True}],
+    'responses': {200: {'description': 'Atributo encontrado'}, 404: {'description': 'No encontrado'}}
+})
+def get_atributo(name):
+    repo = Neo4jGenericRepository()
+    try:
+        node = repo.get_node('Attribute', 'name', name)
+        if node:
+            return jsonify(node), 200
+        return jsonify({'error': 'No encontrado'}), 404
+    finally:
+        repo.close()
+
+@bp.route('/atributos', methods=['POST'])
+@swag_from({
+    'tags': ['Atributos'],
+    'parameters': [{
+        'name': 'body', 'in': 'body', 'required': True,
+        'schema': {'type': 'object', 'properties': {'name': {'type': 'string'}}, 'required': ['name']}
+    }],
+    'responses': {201: {'description': 'Atributo creado'}, 400: {'description': 'Error de validación'}}
+})
+def create_atributo():
+    data = request.get_json() or {}
+    name = data.get('name')
+    if not name:
+        return jsonify({'error': 'name requerido'}), 400
+    repo = Neo4jGenericRepository()
+    try:
+        repo.merge_node('Attribute', 'name', name, data)
+        return jsonify({'name': name, **data}), 201
+    finally:
+        repo.close()
+
+@bp.route('/atributos/<name>', methods=['PUT'])
+@swag_from({
+    'tags': ['Atributos'],
+    'parameters': [
+        {'name': 'name', 'in': 'path', 'type': 'string', 'required': True},
+        {'name': 'body', 'in': 'body', 'schema': {'type': 'object'}}
+    ],
+    'responses': {200: {'description': 'Atributo actualizado'}, 404: {'description': 'No encontrado'}}
+})
+def update_atributo(name):
+    data = request.get_json() or {}
+    repo = Neo4jGenericRepository()
+    try:
+        updated = repo.update_node('Attribute', 'name', name, data)
+        if updated:
+            return jsonify(updated), 200
+        return jsonify({'error': 'No encontrado'}), 404
+    finally:
+        repo.close()
+
+@bp.route('/atributos/<name>', methods=['DELETE'])
+@swag_from({
+    'tags': ['Atributos'],
+    'parameters': [{'name': 'name', 'in': 'path', 'type': 'string', 'required': True}],
+    'responses': {204: {'description': 'Atributo eliminado'}, 404: {'description': 'No encontrado'}}
+})
+def delete_atributo(name):
+    repo = Neo4jGenericRepository()
+    try:
+        ok = repo.delete_node('Attribute', 'name', name)
+        return ('', 204) if ok else (jsonify({'error': 'No encontrado'}), 404)
+    finally:
+        repo.close()
+
+@bp.route('/hosts', methods=['GET'])
+@swag_from({'tags': ['Hosts'], 'responses': {200: {'description': 'Lista de hosts'}}})
+def list_hosts():
+    repo = Neo4jGenericRepository()
+    try:
+        nodes = repo.fetch_nodes('Host')
+        return jsonify([dict(n) for n in nodes]), 200
+    finally:
+        repo.close()
+
+@bp.route('/hosts/<name>', methods=['GET'])
+@swag_from({'tags': ['Hosts'], 'parameters': [{'name': 'name','in':'path','type':'string','required':True}], 'responses': {200: {'description': 'Host encontrado'}, 404: {'description': 'No encontrado'}}})
+def get_host(name):
+    repo = Neo4jGenericRepository()
+    try:
+        node = repo.get_node('Host', 'name', name)
+        return (jsonify(node), 200) if node else (jsonify({'error': 'No encontrado'}), 404)
+    finally:
+        repo.close()
+
+@bp.route('/hosts', methods=['POST'])
+@swag_from({'tags': ['Hosts'], 'parameters': [{'name': 'body','in':'body','required':True,'schema':{'type':'object','properties':{'name':{'type':'string'}},'required':['name']}}], 'responses': {201: {'description': 'Host creado'}, 400: {'description': 'Error validación'}}})
+def create_host():
+    data = request.get_json() or {}
+    name = data.get('name')
+    if not name:
+        return jsonify({'error': 'name requerido'}), 400
+    repo = Neo4jGenericRepository()
+    try:
+        repo.merge_node('Host', 'name', name, data)
+        return jsonify({'name': name, **data}), 201
+    finally:
+        repo.close()
+
+@bp.route('/hosts/<name>', methods=['PUT'])
+@swag_from({'tags': ['Hosts'], 'parameters': [{'name':'name','in':'path','type':'string','required':True},{'name':'body','in':'body','schema':{'type':'object'}}], 'responses': {200: {'description': 'Host actualizado'}, 404: {'description': 'No encontrado'}}})
+def update_host(name):
+    data = request.get_json() or {}
+    repo = Neo4jGenericRepository()
+    try:
+        updated = repo.update_node('Host', 'name', name, data)
+        return (jsonify(updated), 200) if updated else (jsonify({'error': 'No encontrado'}), 404)
+    finally:
+        repo.close()
+
+@bp.route('/hosts/<name>', methods=['DELETE'])
+@swag_from({'tags': ['Hosts'], 'parameters': [{'name':'name','in':'path','type':'string','required':True}], 'responses': {204: {'description': 'Host eliminado'}, 404: {'description': 'No encontrado'}}})
+def delete_host(name):
+    repo = Neo4jGenericRepository()
+    try:
+        ok = repo.delete_node('Host', 'name', name)
+        return ('', 204) if ok else (jsonify({'error': 'No encontrado'}), 404)
+    finally:
+        repo.close()
+
+@bp.route('/metricas', methods=['GET'])
+@swag_from({'tags': ['Metricas'], 'responses': {200: {'description': 'Lista de métricas'}}})
+def list_metricas():
+    repo = Neo4jGenericRepository()
+    try:
+        nodes = repo.fetch_nodes('Metric')
+        return jsonify([dict(n) for n in nodes]), 200
+    finally:
+        repo.close()
+
+@bp.route('/metricas/<name>', methods=['GET'])
+@swag_from({'tags': ['Metricas'], 'parameters': [{'name':'name','in':'path','type':'string','required':True}], 'responses': {200: {'description': 'Métrica encontrada'}, 404: {'description': 'No encontrada'}}})
+def get_metrica(name):
+    repo = Neo4jGenericRepository()
+    try:
+        node = repo.get_node('Metric', 'name', name)
+        return (jsonify(node), 200) if node else (jsonify({'error': 'No encontrado'}), 404)
+    finally:
+        repo.close()
+
+@bp.route('/metricas', methods=['POST'])
+@swag_from({'tags': ['Metricas'], 'parameters': [{'name':'body','in':'body','required':True,'schema':{'type':'object','properties':{'name':{'type':'string'},'sla':{'type':'number'}},'required':['name']}}], 'responses': {201: {'description': 'Métrica creada'}, 400: {'description': 'Error validación'}}})
+def create_metrica():
+    data = request.get_json() or {}
+    name = data.get('name')
+    if not name:
+        return jsonify({'error': 'name requerido'}), 400
+    repo = Neo4jGenericRepository()
+    try:
+        repo.merge_node('Metric', 'name', name, data)
+        return jsonify({'name': name, **data}), 201
+    finally:
+        repo.close()
+
+@bp.route('/metricas/<name>', methods=['PUT'])
+@swag_from({'tags': ['Metricas'], 'parameters': [{'name':'name','in':'path','type':'string','required':True},{'name':'body','in':'body','schema':{'type':'object'}}], 'responses': {200: {'description': 'Métrica actualizada'}, 404: {'description': 'No encontrada'}}})
+def update_metrica(name):
+    data = request.get_json() or {}
+    repo = Neo4jGenericRepository()
+    try:
+        updated = repo.update_node('Metric', 'name', name, data)
+        return (jsonify(updated), 200) if updated else (jsonify({'error': 'No encontrado'}), 404)
+    finally:
+        repo.close()
+
+@bp.route('/metricas/<name>', methods=['DELETE'])
+@swag_from({'tags': ['Metricas'], 'parameters': [{'name':'name','in':'path','type':'string','required':True}], 'responses': {204: {'description': 'Métrica eliminada'}, 404: {'description': 'No encontrada'}}})
+def delete_metrica(name):
+    repo = Neo4jGenericRepository()
+    try:
+        ok = repo.delete_node('Metric', 'name', name)
+        return ('', 204) if ok else (jsonify({'error': 'No encontrado'}), 404)
+    finally:
+        repo.close()
+
+# Alias español para components
+@bp.route('/componentes', methods=['GET'])
+@swag_from({'tags': ['Componentes (alias)'], 'responses': {200: {'description': 'Lista de componentes'}}})
+def list_componentes_es():
+    return get_components()
+
+@bp.route('/componentes/<component_id>', methods=['GET'])
+@swag_from({'tags': ['Componentes (alias)'], 'parameters': [{'name':'component_id','in':'path','type':'string','required':True}], 'responses': {200: {'description': 'Componente encontrado'}, 404: {'description': 'No encontrado'}}})
+def get_componente_es(component_id):
+    return get_component(component_id)
+
+@bp.route('/componentes', methods=['POST'])
+@swag_from({'tags': ['Componentes (alias)'], 'responses': {201: {'description': 'Componente creado'}, 400: {'description': 'Error validación'}}})
+def create_componente_es():
+    return create_component()
+
+@bp.route('/componentes/<component_id>', methods=['PUT'])
+@swag_from({'tags': ['Componentes (alias)'], 'responses': {200: {'description': 'Componente actualizado'}, 404: {'description': 'No encontrado'}}})
+def update_componente_es(component_id):
+    return update_component(component_id)
+
+@bp.route('/componentes/<component_id>', methods=['DELETE'])
+@swag_from({'tags': ['Componentes (alias)'], 'responses': {204: {'description': 'Componente eliminado'}, 404: {'description': 'No encontrado'}}})
+def delete_componente_es(component_id):
+    return delete_component(component_id)
+
+# Ya existe /components -> reutiliza
+
+@bp.route('/relaciones', methods=['GET'])
+@swag_from({'tags': ['Relaciones'], 'responses': {200: {'description': 'Lista de relaciones'}}})
+def list_relaciones():
+    repo = Neo4jGenericRepository()
+    try:
+        rels = repo.fetch_relationships()
+        return jsonify(rels), 200
+    finally:
+        repo.close()
+
+@bp.route('/relaciones', methods=['POST'])
+@swag_from({'tags': ['Relaciones'], 'parameters': [{'name':'body','in':'body','required':True,'schema':{'type':'object','properties':{'from':{'type':'object'},'to':{'type':'object'},'type':{'type':'string'},'props':{'type':'object'}},'required':['from','to','type']}}], 'responses': {201: {'description': 'Relación creada'}, 400: {'description': 'Error'}}})
+def create_relacion():
+    data = request.get_json() or {}
+    from_spec = data.get('from') or data.get('from_')
+    to_spec = data.get('to')
+    rel_type = data.get('type') or 'RELATES'
+    props = data.get('props') or {}
+    if not (from_spec and to_spec and rel_type):
+        return jsonify({'error': 'from/to/type requeridos'}), 400
+    try:
+        repo = Neo4jGenericRepository()
+        try:
+            repo.merge_relationship(
+                canonical_label(from_spec.get('label', 'Component')),
+                from_spec.get('key', 'name'),
+                from_spec.get('value'),
+                canonical_label(to_spec.get('label', 'Component')),
+                to_spec.get('key', 'name'),
+                to_spec.get('value'),
+                rel_type,
+                props
+            )
+            return jsonify({'message': 'Relación creada'}), 201
+        finally:
+            repo.close()
+    except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@bp.route('/import-edges', methods=['POST'])
-@swag_from({
-    'consumes': ['multipart/form-data'],
-    'parameters': [
-        {
-            'name': 'file',
-            'in': 'formData',
-            'type': 'file',
-            'required': True,
-            'description': 'CSV file with columns: source, target, type_of_relation. The target column can contain multiple IDs separated by semicolons (;) to create multiple relationships from a single source.'
-        }
-    ],
-    'responses': {
-        200: {
-            'description': 'List of imported edges',
-            'schema': {
-                'type': 'array',
-                'items': {'type': 'object'}
-            }
-        },
-        201: {
-            'description': 'Relationships created in Neo4j',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'created': {'type': 'integer', 'description': 'Number of relationships created'},
-                    'updated': {'type': 'integer', 'description': 'Number of relationships updated'},
-                    'errors': {'type': 'integer', 'description': 'Number of errors'},
-                    'details': {'type': 'array', 'description': 'Details of each relationship operation'}
-                }
-            }
-        },
-        400: {'description': 'Validation or file error'}
-    }
-})
-def import_edges():
-    """
-    Import edges from a CSV file. The CSV must have columns:
-    source, target, type_of_relation
     
-    The target column can contain multiple IDs separated by semicolons (;).
-    For example, "1,2;3;4,CONNECTS_TO" will create relationships from node 1 to nodes 2, 3, and 4.
-    
-    Always creates relationships in Neo4j. Only source and target are required.
-    Returns:
-        JSON result of created/updated edges or error message.
-    """
-    from app.services import import_edges_from_csv, import_and_create_edges
-    import logging
-    logging.getLogger().setLevel(logging.DEBUG)
-    
-    current_app.logger.info("Iniciando importación de edges")
-    
-    if 'file' not in request.files:
-        current_app.logger.error("No se encontró archivo en la petición")
-        return jsonify({'error': 'No file part in the request'}), 400
-        
-    file = request.files['file']
-    if file.filename == '':
-        current_app.logger.error("Archivo vacío en la petición")
-        return jsonify({'error': 'No selected file'}), 400
-        
-    current_app.logger.info(f"Procesando archivo: {file.filename}")
-    
-    try:
-        edges = import_edges_from_csv(file)
-        current_app.logger.info(f"Se leyeron {len(edges)} edges del CSV")
-        
-        if not edges:
-            return jsonify({'error': 'No valid edges found in the file'}), 400
-            
-        result = import_and_create_edges(edges)
-        current_app.logger.info(f"Resultado: {result}")
-        return jsonify(result), 201
-    except ValueError as e:
-        current_app.logger.error(f"Error en importación: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 400
-    except Exception as e:
-        current_app.logger.error(f"Error inesperado: {str(e)}", exc_info=True)
-        return jsonify({'error': f"Unexpected error: {str(e)}"}), 500

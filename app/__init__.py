@@ -7,8 +7,8 @@ def create_app():
     Swagger(app, template={
         "swagger": "2.0",
         "info": {
-            "title": "API de Componentes de Arquitectura",
-            "description": "Documentación interactiva de la API de componentes.",
+            "title": "ArquitectBot – API del Modelo de Grafo",
+            "description": "Importación y consulta del modelo de arquitectura basado en JSON.",
             "version": "1.0.0"
         },
         "basePath": "/",

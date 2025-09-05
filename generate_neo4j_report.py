@@ -70,7 +70,9 @@ def generate_neo4j_report():
                 out_relations = session.run(
                     """
                     MATCH (n:Component {id: $id})-[r]->(m)
-                    RETURN type(r) as type, m.id as target_id, m.label as target_label
+                    RETURN type(r) as type,
+                           coalesce(m.id, m.name) as target_id,
+                           coalesce(m.label, m.name) as target_label
                     """,
                     id=node['id']
                 ).data()
@@ -84,7 +86,9 @@ def generate_neo4j_report():
                 in_relations = session.run(
                     """
                     MATCH (n:Component {id: $id})<-[r]-(m)
-                    RETURN type(r) as type, m.id as source_id, m.label as source_label
+                    RETURN type(r) as type,
+                           coalesce(m.id, m.name) as source_id,
+                           coalesce(m.label, m.name) as source_label
                     """,
                     id=node['id']
                 ).data()
